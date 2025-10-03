@@ -13,7 +13,8 @@
     "test:binance": "tsx scripts/test-binance.ts",
     "test:ai": "tsx scripts/test-ai.ts",
     "test:indicators": "tsx scripts/test-indicators.ts",
-    "test:all": "bun run test:binance && bun run test:indicators && bun run test:ai"
+    "test:enhanced": "tsx scripts/test-enhanced-indicators.ts",
+    "test:all": "bun run test:binance && bun run test:indicators && bun run test:enhanced && bun run test:ai"
   },
   "keywords": [
     "telegram",

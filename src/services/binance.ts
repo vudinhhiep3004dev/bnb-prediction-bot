@@ -1,6 +1,13 @@
 import axios from 'axios';
-import { BinanceKline, BinanceTicker24hr, MarketData } from '../types/index.js';
+import {
+  BinanceKline,
+  BinanceTicker24hr,
+  MarketData,
+  BinanceOrderBook,
+  BinanceTrade,
+} from '../types/index.js';
 import { logger } from '../utils/logger.js';
+import { analyzeOrderBook, analyzeTradeFlow } from '../utils/indicators.js';
 
 const BINANCE_API_BASE = 'https://api.binance.com';
 
@@ -106,7 +113,10 @@ export class BinanceService {
   /**
    * Get recent trades
    */
-  async getRecentTrades(symbol: string = 'BNBUSDT', limit: number = 100) {
+  async getRecentTrades(
+    symbol: string = 'BNBUSDT',
+    limit: number = 100
+  ): Promise<BinanceTrade[]> {
     try {
       const response = await axios.get(`${BINANCE_API_BASE}/api/v3/trades`, {
         params: {
@@ -125,7 +135,10 @@ export class BinanceService {
   /**
    * Get order book depth
    */
-  async getOrderBook(symbol: string = 'BNBUSDT', limit: number = 100) {
+  async getOrderBook(
+    symbol: string = 'BNBUSDT',
+    limit: number = 20
+  ): Promise<BinanceOrderBook> {
     try {
       const response = await axios.get(`${BINANCE_API_BASE}/api/v3/depth`, {
         params: {
@@ -138,6 +151,43 @@ export class BinanceService {
     } catch (error) {
       logger.error('Error fetching order book from Binance:', error);
       throw new Error('Failed to fetch order book from Binance');
+    }
+  }
+
+  /**
+   * Get comprehensive market data with order book and trade flow analysis
+   */
+  async getEnhancedMarketData(
+    symbol: string = 'BNBUSDT',
+    interval: string = '5m',
+    limit: number = 100
+  ): Promise<MarketData> {
+    try {
+      const [klines, ticker24hr, orderBook, recentTrades] = await Promise.all([
+        this.getKlines(symbol, interval, limit),
+        this.get24hrTicker(symbol),
+        this.getOrderBook(symbol, 20),
+        this.getRecentTrades(symbol, 100),
+      ]);
+
+      const orderBookData = analyzeOrderBook(orderBook);
+      const tradeFlowData = analyzeTradeFlow(recentTrades);
+
+      return {
+        currentPrice: parseFloat(ticker24hr.lastPrice),
+        priceChange24h: parseFloat(ticker24hr.priceChange),
+        priceChangePercent24h: parseFloat(ticker24hr.priceChangePercent),
+        volume24h: parseFloat(ticker24hr.volume),
+        high24h: parseFloat(ticker24hr.highPrice),
+        low24h: parseFloat(ticker24hr.lowPrice),
+        klines,
+        timestamp: Date.now(),
+        orderBook: orderBookData,
+        recentTrades: tradeFlowData,
+      };
+    } catch (error) {
+      logger.error('Error fetching enhanced market data:', error);
+      throw new Error('Failed to fetch enhanced market data');
     }
   }
 }

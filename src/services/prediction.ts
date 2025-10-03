@@ -20,9 +20,13 @@ export class PredictionService {
     try {
       logger.info(`Generating prediction for ${symbol}...`);
 
-      // Step 1: Fetch market data
-      logger.info('Fetching market data from Binance...');
-      const marketData = await this.binanceService.getMarketData(symbol, '5m', 100);
+      // Step 1: Fetch enhanced market data (includes order book & trade flow)
+      logger.info('Fetching enhanced market data from Binance...');
+      const marketData = await this.binanceService.getEnhancedMarketData(
+        symbol,
+        '5m',
+        100
+      );
 
       // Step 2: Calculate technical indicators
       logger.info('Calculating technical indicators...');

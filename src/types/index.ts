@@ -37,6 +37,22 @@ export interface BinanceTicker24hr {
   count: number;
 }
 
+export interface BinanceOrderBook {
+  lastUpdateId: number;
+  bids: [string, string][]; // [price, quantity]
+  asks: [string, string][];
+}
+
+export interface BinanceTrade {
+  id: number;
+  price: string;
+  qty: string;
+  quoteQty: string;
+  time: number;
+  isBuyerMaker: boolean;
+  isBestMatch: boolean;
+}
+
 // Market Analysis Types
 export interface MarketData {
   currentPrice: number;
@@ -47,6 +63,32 @@ export interface MarketData {
   low24h: number;
   klines: BinanceKline[];
   timestamp: number;
+  orderBook?: OrderBookData;
+  recentTrades?: TradeFlowData;
+}
+
+export interface OrderBookData {
+  bidAskSpread: number;
+  bidAskSpreadPercent: number;
+  totalBidVolume: number;
+  totalAskVolume: number;
+  buyPressure: number; // 0-1, higher = more buy pressure
+  imbalanceRatio: number; // -1 to 1, positive = more bids
+  topBidPrice: number;
+  topAskPrice: number;
+  depthQuality: 'THIN' | 'NORMAL' | 'DEEP';
+}
+
+export interface TradeFlowData {
+  totalBuyVolume: number;
+  totalSellVolume: number;
+  buySellRatio: number;
+  tradeVelocity: number; // trades per second
+  avgTradeSize: number;
+  largeOrderCount: number;
+  aggressiveBuyPercent: number;
+  aggressiveSellPercent: number;
+  recentTrend: 'STRONG_BUY' | 'BUY' | 'NEUTRAL' | 'SELL' | 'STRONG_SELL';
 }
 
 export interface TechnicalIndicators {
@@ -69,6 +111,21 @@ export interface TechnicalIndicators {
   volumeProfile: {
     averageVolume: number;
     currentVolumeRatio: number;
+  };
+  atr: {
+    value: number;
+    percent: number;
+    level: 'LOW' | 'MEDIUM' | 'HIGH';
+  };
+  stochastic: {
+    k: number;
+    d: number;
+    signal: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+  };
+  vwap: {
+    value: number;
+    priceVsVWAP: number;
+    position: 'ABOVE' | 'BELOW';
   };
 }
 
