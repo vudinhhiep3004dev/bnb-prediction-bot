@@ -30,20 +30,20 @@ export class AIService {
         messages: [
           {
             role: 'system',
-            content: `You are an expert cryptocurrency trading analyst specializing in short-term price predictions for the PancakeSwap Prediction game. 
+            content: `You are an expert cryptocurrency trading analyst specializing in short-term price predictions for the PancakeSwap Prediction game.
 Your task is to analyze market data and technical indicators to predict whether BNB price will go UP or DOWN in the next 5 minutes.
 
 You must respond ONLY with a valid JSON object in this exact format:
 {
   "prediction": "UP" or "DOWN",
   "confidence": number between 0-100,
-  "reasoning": "brief explanation",
+  "reasoning": "brief explanation (max 100 characters)",
   "keyFactors": ["factor1", "factor2", "factor3"],
   "riskLevel": "LOW" or "MEDIUM" or "HIGH",
-  "suggestedAction": "recommendation"
+  "suggestedAction": "recommendation (max 50 characters)"
 }
 
-Do not include any text before or after the JSON object.`,
+IMPORTANT: Keep all text fields concise. Do not include any text before or after the JSON object.`,
           },
           {
             role: 'user',
@@ -51,7 +51,7 @@ Do not include any text before or after the JSON object.`,
           },
         ],
         temperature: 0.3,
-        max_tokens: 1000,
+        max_tokens: 2000,
       };
 
       logger.info('Sending request to Cloudflare AI Gateway...');
@@ -63,15 +63,47 @@ Do not include any text before or after the JSON object.`,
         },
       });
 
-      const content = response.data.choices[0].message.content;
-      logger.info('Received AI response:', { content });
+      // Validate response structure
+      if (!response.data || !response.data.choices || response.data.choices.length === 0) {
+        logger.error('Invalid AI response structure:', { response: response.data });
+        throw new Error('Invalid response structure from AI');
+      }
+
+      const content = response.data.choices[0]?.message?.content;
+      const finishReason = response.data.choices[0]?.finish_reason;
+
+      if (!content) {
+        logger.error('Empty content in AI response:', {
+          response: response.data,
+          choice: response.data.choices[0]
+        });
+        throw new Error('Empty content received from AI');
+      }
+
+      // Check if response was truncated
+      if (finishReason === 'length') {
+        logger.warn('AI response was truncated due to max_tokens limit', {
+          content,
+          finishReason,
+        });
+      }
+
+      logger.info('Received AI response:', { content, finishReason });
 
       // Parse JSON response
       const prediction = this.parseAIResponse(content);
 
       return prediction;
     } catch (error) {
-      logger.error('Error generating prediction:', error);
+      if (axios.isAxiosError(error)) {
+        logger.error('Axios error generating prediction:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+      } else {
+        logger.error('Error generating prediction:', error);
+      }
       throw new Error('Failed to generate prediction from AI');
     }
   }
@@ -149,6 +181,12 @@ Provide your prediction in the required JSON format.`;
    */
   private parseAIResponse(content: string): PredictionResponse {
     try {
+      // Validate input
+      if (!content || typeof content !== 'string') {
+        logger.error('Invalid content type:', { content, type: typeof content });
+        throw new Error('Content must be a non-empty string');
+      }
+
       // Remove markdown code blocks if present
       let jsonStr = content.trim();
       if (jsonStr.startsWith('```json')) {
@@ -157,10 +195,29 @@ Provide your prediction in the required JSON format.`;
         jsonStr = jsonStr.replace(/```\n?/g, '');
       }
 
+      // Trim again after removing markdown
+      jsonStr = jsonStr.trim();
+
+      if (!jsonStr) {
+        logger.error('Empty JSON string after processing:', { original: content });
+        throw new Error('Empty JSON string after processing markdown removal');
+      }
+
+      // Check if JSON is complete (has closing brace)
+      if (!jsonStr.endsWith('}')) {
+        logger.error('Incomplete JSON response detected:', {
+          jsonStr,
+          endsWithBrace: jsonStr.endsWith('}'),
+          lastChars: jsonStr.slice(-20),
+        });
+        throw new Error('Incomplete JSON response - response was likely truncated');
+      }
+
       const parsed = JSON.parse(jsonStr);
 
       // Validate required fields
       if (!parsed.prediction || !['UP', 'DOWN'].includes(parsed.prediction)) {
+        logger.error('Invalid prediction value:', { parsed });
         throw new Error('Invalid prediction value');
       }
 
@@ -173,18 +230,14 @@ Provide your prediction in the required JSON format.`;
         suggestedAction: parsed.suggestedAction || 'Proceed with caution',
       };
     } catch (error) {
-      logger.error('Error parsing AI response:', error);
-      logger.error('Raw content:', content);
+      logger.error('Error parsing AI response:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      logger.error('Raw content:', { content: content || 'undefined/null' });
 
-      // Return a fallback response
-      return {
-        prediction: 'UP',
-        confidence: 50,
-        reasoning: 'Unable to parse AI response, using neutral prediction',
-        keyFactors: ['Error in analysis'],
-        riskLevel: 'HIGH',
-        suggestedAction: 'Do not trade based on this prediction',
-      };
+      // Throw error instead of returning fallback to make the issue visible
+      throw new Error(`Failed to parse AI response: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }
