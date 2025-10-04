@@ -5,6 +5,11 @@ import { RoundMonitorService } from './round-monitor.js';
 import { HybridPriceService } from './hybrid-price.js';
 import { calculateIndicators, calculatePredictedPrice } from '../utils/indicators.js';
 import { PredictionResult } from '../types/index.js';
+import {
+  detectMarketCondition,
+  logMarketCondition,
+  formatWeights
+} from '../utils/dynamic-weights.js';
 import { logger } from '../utils/logger.js';
 
 export class PredictionService {
@@ -79,11 +84,25 @@ export class PredictionService {
         : undefined;
       const indicators = calculateIndicators(marketData.klines, recentTrades);
 
-      // Step 5: Get AI prediction
-      logger.info('🤖 Step 5: Requesting AI analysis...');
+      // Step 4.5: Detect market condition and calculate dynamic weights
+      logger.info('🎯 Step 4.5: Analyzing market conditions for dynamic weights...');
+      const marketConditionAnalysis = detectMarketCondition(
+        indicators,
+        marketData,
+        marketData.orderBook,
+        marketData.recentTrades
+      );
+
+      // Log market condition analysis
+      logMarketCondition(marketConditionAnalysis);
+
+      // Step 5: Get AI prediction with dynamic weights
+      logger.info('🤖 Step 5: Requesting AI analysis with dynamic weights...');
       const aiPrediction = await this.aiService.generatePrediction({
         marketData,
         indicators,
+        dynamicWeights: marketConditionAnalysis.weights,
+        marketCondition: marketConditionAnalysis.primaryCondition,
       });
 
       // Step 6: Apply confidence adjustment based on price source

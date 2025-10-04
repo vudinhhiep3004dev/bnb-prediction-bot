@@ -168,6 +168,14 @@ export interface PredictionRequest {
   marketData: MarketData;
   indicators: TechnicalIndicators;
   historicalAccuracy?: number;
+  dynamicWeights?: {
+    orderBook: number;
+    tradeFlow: number;
+    momentum: number;
+    trend: number;
+    volume: number;
+  };
+  marketCondition?: string;
 }
 
 export interface PredictionResponse {

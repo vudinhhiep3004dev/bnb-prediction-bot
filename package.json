@@ -16,7 +16,8 @@
     "test:enhanced": "tsx scripts/test-enhanced-indicators.ts",
     "test:price": "tsx scripts/test-price-prediction.ts",
     "test:hybrid": "tsx scripts/test-hybrid-price.ts",
-    "test:all": "bun run test:binance && bun run test:indicators && bun run test:enhanced && bun run test:price && bun run test:hybrid && bun run test:ai",
+    "test:weights": "tsx scripts/test-dynamic-weights.ts",
+    "test:all": "bun run test:binance && bun run test:indicators && bun run test:enhanced && bun run test:price && bun run test:hybrid && bun run test:weights && bun run test:ai",
     "backtest": "tsx src/scripts/run-backtest.ts"
   },
   "keywords": [

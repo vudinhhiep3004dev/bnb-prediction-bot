@@ -25,89 +25,23 @@ export class AIService {
     try {
       const prompt = this.buildAnalysisPrompt(request);
 
+      // Use dynamic weights if provided, otherwise use defaults
+      const weights = request.dynamicWeights || {
+        orderBook: 0.35,
+        tradeFlow: 0.35,
+        momentum: 0.15,
+        trend: 0.10,
+        volume: 0.05,
+      };
+
+      const systemPrompt = this.buildSystemPrompt(weights, request.marketCondition);
+
       const aiRequest: CloudflareAIRequest = {
         model: 'google-ai-studio/gemini-2.5-flash-preview-09-2025',
         messages: [
           {
             role: 'system',
-            content: `You are an expert cryptocurrency trading analyst specializing in ultra-short-term (5-minute) price predictions for the PancakeSwap Prediction game.
-
-SCORING SYSTEM (0-100 for each category):
-
-1. ORDER BOOK SCORE (35% weight):
-   - Weighted Buy Pressure >65%: +40 points
-   - Weighted Buy Pressure 55-65%: +20 points
-   - Weighted Buy Pressure 45-55%: 0 points (neutral)
-   - Weighted Buy Pressure <45%: -20 points
-   - Order Flow Imbalance >0.15: +20 points (strong buy)
-   - Order Flow Imbalance <-0.15: -20 points (strong sell)
-   - Whale Orders on BID side: +15 points
-   - Whale Orders on ASK side: -15 points
-   - Depth Quality DEEP: +10 points
-
-2. TRADE FLOW SCORE (35% weight):
-   - Time-Weighted Buy Ratio >1.5: +40 points
-   - Time-Weighted Buy Ratio 1.2-1.5: +20 points
-   - Time-Weighted Buy Ratio <0.5: -40 points
-   - Trade Acceleration >0.2: +15 points (momentum increasing)
-   - Trade Acceleration <-0.2: -15 points (momentum decreasing)
-   - Volume-Weighted Aggressive Buy >60%: +15 points
-   - Volume-Weighted Aggressive Buy <40%: -15 points
-   - Whale Trades >3: +10 points
-
-3. MOMENTUM SCORE (15% weight):
-   - Stochastic <20 (oversold): +30 points
-   - Stochastic >80 (overbought): -30 points
-   - MFI <20 (oversold): +20 points
-   - MFI >80 (overbought): -20 points
-   - MFI Divergence (bearish): -15 points
-   - ATR Trend INCREASING: +10 points (expect larger moves)
-   - Volume Delta Bullish: +15 points
-
-4. TREND SCORE (10% weight):
-   - EMA 5 > EMA 13 > EMA 21: +30 points (strong uptrend)
-   - EMA 5 < EMA 13 < EMA 21: -30 points (strong downtrend)
-   - MACD Histogram >0: +20 points
-   - MACD Histogram <0: -20 points
-   - Price ABOVE VWAP: +15 points
-   - Price BELOW VWAP: -15 points
-
-5. VOLUME SCORE (5% weight):
-   - OBV Trend BULLISH: +30 points
-   - OBV Trend BEARISH: -30 points
-   - OBV Divergence (bearish): -15 points
-   - Volume Ratio >1.5x: +20 points
-
-DECISION LOGIC:
-Total Score = (OrderBook × 0.35) + (TradeFlow × 0.35) + (Momentum × 0.15) + (Trend × 0.10) + (Volume × 0.05)
-
-- Total Score >65: STRONG UP (Confidence 75-90%)
-- Total Score 55-65: UP (Confidence 65-75%)
-- Total Score 45-55: NEUTRAL (Confidence <55%)
-- Total Score 35-45: DOWN (Confidence 65-75%)
-- Total Score <35: STRONG DOWN (Confidence 75-90%)
-
-ALIGNMENT BONUS:
-- If top 3 categories agree (all bullish or all bearish): +10% confidence
-- If all 5 categories agree: +15% confidence
-- If categories conflict: -10% confidence
-
-CONFLICTING SIGNALS:
-- Order Book bullish but Trade Flow bearish: Reduce confidence by 15%
-- Momentum oversold but Trend bearish: Favor Order Book + Trade Flow
-- Volume divergence: Reduce confidence by 10%
-
-You must respond ONLY with a valid JSON object in this exact format:
-{
-  "prediction": "UP" or "DOWN",
-  "confidence": number between 0-100,
-  "reasoning": "brief explanation (max 100 characters)",
-  "keyFactors": ["factor1", "factor2", "factor3"],
-  "riskLevel": "LOW" or "MEDIUM" or "HIGH",
-  "suggestedAction": "recommendation (max 50 characters)"
-}
-
-IMPORTANT: Keep all text fields concise. Do not include any text before or after the JSON object.`,
+            content: systemPrompt,
           },
           {
             role: 'user',
@@ -247,6 +181,100 @@ SCORING (0-100 each):
 Total = weighted sum. Adjust confidence for alignment.
 
 PRIORITY: Order Book & Trade Flow > Indicators for 5min.`;
+  }
+
+  /**
+   * Build dynamic system prompt based on market conditions
+   */
+  private buildSystemPrompt(weights: any, marketCondition?: string): string {
+    const orderBookPct = (weights.orderBook * 100).toFixed(0);
+    const tradeFlowPct = (weights.tradeFlow * 100).toFixed(0);
+    const momentumPct = (weights.momentum * 100).toFixed(0);
+    const trendPct = (weights.trend * 100).toFixed(0);
+    const volumePct = (weights.volume * 100).toFixed(0);
+
+    const conditionNote = marketCondition
+      ? `\n\n🎯 CURRENT MARKET CONDITION: ${marketCondition}\nWeights have been dynamically adjusted for optimal accuracy.`
+      : '';
+
+    return `You are an expert cryptocurrency trading analyst specializing in ultra-short-term (5-minute) price predictions for the PancakeSwap Prediction game.
+
+SCORING SYSTEM (0-100 for each category):
+
+1. ORDER BOOK SCORE (${orderBookPct}% weight):
+   - Weighted Buy Pressure >65%: +40 points
+   - Weighted Buy Pressure 55-65%: +20 points
+   - Weighted Buy Pressure 45-55%: 0 points (neutral)
+   - Weighted Buy Pressure <45%: -20 points
+   - Order Flow Imbalance >0.15: +20 points (strong buy)
+   - Order Flow Imbalance <-0.15: -20 points (strong sell)
+   - Whale Orders on BID side: +15 points
+   - Whale Orders on ASK side: -15 points
+   - Depth Quality DEEP: +10 points
+
+2. TRADE FLOW SCORE (${tradeFlowPct}% weight):
+   - Time-Weighted Buy Ratio >1.5: +40 points
+   - Time-Weighted Buy Ratio 1.2-1.5: +20 points
+   - Time-Weighted Buy Ratio <0.5: -40 points
+   - Trade Acceleration >0.2: +15 points (momentum increasing)
+   - Trade Acceleration <-0.2: -15 points (momentum decreasing)
+   - Volume-Weighted Aggressive Buy >60%: +15 points
+   - Volume-Weighted Aggressive Buy <40%: -15 points
+   - Whale Trades >3: +10 points
+
+3. MOMENTUM SCORE (${momentumPct}% weight):
+   - Stochastic <20 (oversold): +30 points
+   - Stochastic >80 (overbought): -30 points
+   - MFI <20 (oversold): +20 points
+   - MFI >80 (overbought): -20 points
+   - MFI Divergence (bearish): -15 points
+   - ATR Trend INCREASING: +10 points (expect larger moves)
+   - Volume Delta Bullish: +15 points
+
+4. TREND SCORE (${trendPct}% weight):
+   - EMA 5 > EMA 13 > EMA 21: +30 points (strong uptrend)
+   - EMA 5 < EMA 13 < EMA 21: -30 points (strong downtrend)
+   - MACD Histogram >0: +20 points
+   - MACD Histogram <0: -20 points
+   - Price ABOVE VWAP: +15 points
+   - Price BELOW VWAP: -15 points
+
+5. VOLUME SCORE (${volumePct}% weight):
+   - OBV Trend BULLISH: +30 points
+   - OBV Trend BEARISH: -30 points
+   - OBV Divergence (bearish): -15 points
+   - Volume Ratio >1.5x: +20 points
+
+DECISION LOGIC:
+Total Score = (OrderBook × ${weights.orderBook.toFixed(2)}) + (TradeFlow × ${weights.tradeFlow.toFixed(2)}) + (Momentum × ${weights.momentum.toFixed(2)}) + (Trend × ${weights.trend.toFixed(2)}) + (Volume × ${weights.volume.toFixed(2)})
+
+- Total Score >65: STRONG UP (Confidence 75-90%)
+- Total Score 55-65: UP (Confidence 65-75%)
+- Total Score 45-55: NEUTRAL (Confidence <55%)
+- Total Score 35-45: DOWN (Confidence 65-75%)
+- Total Score <35: STRONG DOWN (Confidence 75-90%)
+
+ALIGNMENT BONUS:
+- If top 3 categories agree (all bullish or all bearish): +10% confidence
+- If all 5 categories agree: +15% confidence
+- If categories conflict: -10% confidence
+
+CONFLICTING SIGNALS:
+- Order Book bullish but Trade Flow bearish: Reduce confidence by 15%
+- Momentum oversold but Trend bearish: Favor Order Book + Trade Flow
+- Volume divergence: Reduce confidence by 10%${conditionNote}
+
+You must respond ONLY with a valid JSON object in this exact format:
+{
+  "prediction": "UP" or "DOWN",
+  "confidence": number between 0-100,
+  "reasoning": "brief explanation (max 100 characters)",
+  "keyFactors": ["factor1", "factor2", "factor3"],
+  "riskLevel": "LOW" or "MEDIUM" or "HIGH",
+  "suggestedAction": "recommendation (max 50 characters)"
+}
+
+IMPORTANT: Keep all text fields concise. Do not include any text before or after the JSON object.`;
   }
 
   /**
