@@ -194,6 +194,12 @@ export interface PredictionResult {
   prediction: 'UP' | 'DOWN';
   confidence: number;
   currentPrice: number;
+  predictedPrice: number; // Giá dự kiến
+  priceRange: {
+    min: number; // Giá thấp nhất dự kiến
+    max: number; // Giá cao nhất dự kiến
+  };
+  expectedChange: number; // Thay đổi dự kiến (%)
   reasoning: string;
   indicators: {
     rsi: number;

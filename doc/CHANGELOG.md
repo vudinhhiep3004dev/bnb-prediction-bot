@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-01-04
+
+### Added
+- **Predicted Price Feature** - Dự đoán giá cụ thể cho khung 5 phút tiếp theo
+  - Tính toán giá dự kiến (predicted price) dựa trên các chỉ số kỹ thuật
+  - Hiển thị khoảng giá dự kiến (price range: min - max)
+  - Tính toán phần trăm thay đổi dự kiến (expected change %)
+  - Sử dụng ATR để xác định biên độ dao động
+  - Sử dụng Bollinger Bands để xác định khoảng giá hợp lý
+  - Sử dụng VWAP và EMA để xác định xu hướng giá
+  - Sử dụng Order Book depth để đánh giá áp lực mua/bán
+  - Sử dụng Trade Flow để đánh giá momentum thị trường
+  - Sử dụng Stochastic Oscillator để điều chỉnh dự đoán
+  - Hiển thị giá dự kiến với màu sắc (🟢 cho UP, 🔴 cho DOWN)
+  - Thêm disclaimer về độ chính xác của dự đoán giá
+- New test script `test:price` để kiểm tra chức năng dự đoán giá
+- Function `calculatePredictedPrice()` trong `utils/indicators.ts`
+
+### Changed
+- Updated `PredictionResult` interface với các field mới:
+  - `predictedPrice`: Giá dự kiến
+  - `priceRange`: Khoảng giá dự kiến (min, max)
+  - `expectedChange`: Phần trăm thay đổi dự kiến
+- Enhanced Telegram message format với thông tin giá dự kiến
+- Updated `PredictionService.generatePrediction()` để tính predicted price
+- Updated disclaimer trong message để nhấn mạnh về độ chính xác
+
+### Improved
+- Độ chính xác dự đoán giá dựa trên 10 chỉ số kỹ thuật
+- Tính toán động dựa trên volatility level (LOW/MEDIUM/HIGH)
+- Điều chỉnh dự đoán dựa trên order book pressure
+- Điều chỉnh dự đoán dựa trên trade flow momentum
+- Validation để đảm bảo giá dự kiến nằm trong khoảng hợp lý
+
+### Technical
+- Algorithm sử dụng 50% ATR cho base movement
+- Điều chỉnh ±30% dựa trên volatility level
+- Sử dụng 30% ATR cho price range width
+- Áp dụng pressure factor từ order book và trade flow
+- Giới hạn giá dự kiến trong khoảng Bollinger Bands (với tolerance)
+
 ## [1.1.0] - 2025-01-03
 
 ### Added

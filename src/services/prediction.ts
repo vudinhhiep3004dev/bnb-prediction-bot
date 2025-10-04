@@ -1,6 +1,6 @@
 import { BinanceService } from './binance.js';
 import { AIService } from './ai.js';
-import { calculateIndicators } from '../utils/indicators.js';
+import { calculateIndicators, calculatePredictedPrice } from '../utils/indicators.js';
 import { PredictionResult } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
@@ -39,11 +39,24 @@ export class PredictionService {
         indicators,
       });
 
-      // Step 4: Format result
+      // Step 4: Calculate predicted price
+      logger.info('Calculating predicted price...');
+      const priceCalculation = calculatePredictedPrice(
+        marketData.currentPrice,
+        aiPrediction.prediction,
+        indicators,
+        marketData.orderBook,
+        marketData.recentTrades
+      );
+
+      // Step 5: Format result
       const result: PredictionResult = {
         prediction: aiPrediction.prediction,
         confidence: aiPrediction.confidence,
         currentPrice: marketData.currentPrice,
+        predictedPrice: priceCalculation.predictedPrice,
+        priceRange: priceCalculation.priceRange,
+        expectedChange: priceCalculation.expectedChange,
         reasoning: aiPrediction.reasoning,
         indicators: {
           rsi: indicators.rsi,
@@ -56,6 +69,8 @@ export class PredictionService {
       logger.info('Prediction generated successfully:', {
         prediction: result.prediction,
         confidence: result.confidence,
+        predictedPrice: result.predictedPrice,
+        expectedChange: result.expectedChange,
       });
 
       return result;

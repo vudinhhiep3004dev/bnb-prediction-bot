@@ -16,6 +16,13 @@ export async function predictCommand(ctx: Context) {
     const emoji = prediction.prediction === 'UP' ? '📈' : '📉';
     const confidenceEmoji = getConfidenceEmoji(prediction.confidence);
     const riskEmoji = getRiskEmoji(prediction.confidence);
+    const priceChangeEmoji = prediction.expectedChange > 0 ? '🟢' : '🔴';
+
+    // Format predicted price với màu sắc
+    const predictedPriceText =
+      prediction.prediction === 'UP'
+        ? `🟢 $${prediction.predictedPrice.toFixed(2)}`
+        : `🔴 $${prediction.predictedPrice.toFixed(2)}`;
 
     const message = `
 ${emoji} **DỰ ĐOÁN GIÁ BNB - 5 PHÚT TỚI**
@@ -25,8 +32,14 @@ ${confidenceEmoji} **Độ tin cậy:** ${prediction.confidence.toFixed(1)}%
 ${riskEmoji} **Mức độ rủi ro:** ${getRiskLevel(prediction.confidence)}
 
 💰 **Giá hiện tại:** $${prediction.currentPrice.toFixed(2)}
+🎯 **Giá dự kiến:** ${predictedPriceText}
+${priceChangeEmoji} **Thay đổi dự kiến:** ${prediction.expectedChange > 0 ? '+' : ''}${prediction.expectedChange.toFixed(2)}%
 
-📊 **Chỉ số kỹ thuật:**
+📊 **Khoảng giá dự kiến:**
+• Thấp nhất: $${prediction.priceRange.min.toFixed(2)}
+• Cao nhất: $${prediction.priceRange.max.toFixed(2)}
+
+📈 **Chỉ số kỹ thuật:**
 • RSI: ${prediction.indicators.rsi.toFixed(2)} ${getRSIStatus(prediction.indicators.rsi)}
 • Xu hướng: ${prediction.indicators.trend}
 • Khối lượng: ${prediction.indicators.volume}
@@ -37,10 +50,10 @@ ${prediction.reasoning}
 ⏰ **Thời gian:** ${prediction.timestamp.toLocaleString('vi-VN')}
 
 ⚠️ **Lưu ý:**
-• Dự đoán có thể thay đổi theo thị trường
-• Chỉ mang tính chất tham khảo
-• Không phải lời khuyên đầu tư
-• Hãy quản lý rủi ro cẩn thận
+• Giá dự kiến dựa trên phân tích kỹ thuật và có thể sai lệch
+• Thị trường crypto biến động cao, giá có thể thay đổi đột ngột
+• Chỉ mang tính chất tham khảo, không phải lời khuyên đầu tư
+• Hãy quản lý rủi ro cẩn thận và chỉ đầu tư số tiền bạn có thể mất
 
 🎮 **Chơi ngay:** https://pancakeswap.finance/prediction
 `;

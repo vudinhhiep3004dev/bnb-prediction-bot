@@ -392,3 +392,136 @@ export function calculateIndicators(klines: BinanceKline[]): TechnicalIndicators
   };
 }
 
+/**
+ * Calculate predicted price based on technical indicators and market data
+ * Sử dụng ATR, Bollinger Bands, VWAP, Order Book và Trade Flow để tính giá dự kiến
+ */
+export function calculatePredictedPrice(
+  currentPrice: number,
+  prediction: 'UP' | 'DOWN',
+  indicators: TechnicalIndicators,
+  orderBook?: OrderBookData,
+  tradeFlow?: TradeFlowData
+): {
+  predictedPrice: number;
+  priceRange: { min: number; max: number };
+  expectedChange: number;
+} {
+  // 1. Tính biên độ dao động dự kiến dựa trên ATR
+  const atrValue = indicators.atr.value;
+  const atrPercent = indicators.atr.percent;
+
+  // 2. Tính khoảng giá từ Bollinger Bands
+  const bbUpper = indicators.bollingerBands.upper;
+  const bbLower = indicators.bollingerBands.lower;
+  const bbMiddle = indicators.bollingerBands.middle;
+
+  // 3. Tính áp lực từ Order Book (nếu có)
+  let orderBookPressure = 0.5; // Neutral default
+  if (orderBook) {
+    orderBookPressure = orderBook.buyPressure;
+  }
+
+  // 4. Tính momentum từ Trade Flow (nếu có)
+  let tradeFlowMomentum = 1.0; // Neutral default
+  if (tradeFlow) {
+    // Tính momentum dựa trên buy/sell ratio và aggressive traders
+    const buyRatio = tradeFlow.buySellRatio;
+    const aggressiveBuyPercent = tradeFlow.aggressiveBuyPercent;
+    const aggressiveSellPercent = tradeFlow.aggressiveSellPercent;
+
+    if (buyRatio > 1.2 && aggressiveBuyPercent > 55) {
+      tradeFlowMomentum = 1.3; // Strong buy momentum
+    } else if (buyRatio > 1.0 && aggressiveBuyPercent > 50) {
+      tradeFlowMomentum = 1.15; // Moderate buy momentum
+    } else if (buyRatio < 0.8 && aggressiveSellPercent > 55) {
+      tradeFlowMomentum = 0.7; // Strong sell momentum
+    } else if (buyRatio < 1.0 && aggressiveSellPercent > 50) {
+      tradeFlowMomentum = 0.85; // Moderate sell momentum
+    }
+  }
+
+  // 5. Tính độ lệch giá dựa trên VWAP
+  const vwapDeviation = indicators.vwap.priceVsVWAP;
+
+  // 6. Tính Stochastic momentum
+  const stochasticK = indicators.stochastic.k;
+  let stochasticFactor = 1.0;
+  if (stochasticK < 20) {
+    stochasticFactor = 1.1; // Oversold, có thể tăng mạnh
+  } else if (stochasticK > 80) {
+    stochasticFactor = 0.9; // Overbought, có thể giảm
+  }
+
+  // 7. Tính base movement dựa trên ATR và volatility
+  let baseMovement = atrValue * 0.5; // Sử dụng 50% ATR cho 5 phút
+
+  // Điều chỉnh base movement dựa trên volatility level
+  if (indicators.atr.level === 'HIGH') {
+    baseMovement *= 1.3; // Tăng 30% nếu volatility cao
+  } else if (indicators.atr.level === 'LOW') {
+    baseMovement *= 0.7; // Giảm 30% nếu volatility thấp
+  }
+
+  // 8. Điều chỉnh movement dựa trên order book pressure và trade flow
+  const pressureFactor = orderBookPressure * tradeFlowMomentum * stochasticFactor;
+  const adjustedMovement = baseMovement * pressureFactor;
+
+  // 9. Tính predicted price
+  let predictedPrice: number;
+  if (prediction === 'UP') {
+    // Giá dự kiến tăng
+    predictedPrice = currentPrice + adjustedMovement;
+
+    // Đảm bảo không vượt quá Bollinger Band upper (trừ khi có momentum rất mạnh)
+    if (tradeFlowMomentum < 1.25 && predictedPrice > bbUpper) {
+      predictedPrice = bbUpper * 0.98; // 98% của upper band
+    }
+
+    // Nếu có VWAP deviation lớn, điều chỉnh
+    if (vwapDeviation > 2) {
+      predictedPrice = currentPrice + adjustedMovement * 0.7; // Giảm dự đoán
+    }
+  } else {
+    // Giá dự kiến giảm
+    predictedPrice = currentPrice - adjustedMovement;
+
+    // Đảm bảo không thấp hơn Bollinger Band lower (trừ khi có momentum rất mạnh)
+    if (tradeFlowMomentum > 0.75 && predictedPrice < bbLower) {
+      predictedPrice = bbLower * 1.02; // 102% của lower band
+    }
+
+    // Nếu có VWAP deviation lớn, điều chỉnh
+    if (vwapDeviation < -2) {
+      predictedPrice = currentPrice - adjustedMovement * 0.7; // Giảm dự đoán
+    }
+  }
+
+  // 10. Tính price range (khoảng giá có thể)
+  const rangeWidth = atrValue * 0.3; // Sử dụng 30% ATR cho range
+  const priceRange = {
+    min: predictedPrice - rangeWidth,
+    max: predictedPrice + rangeWidth,
+  };
+
+  // Đảm bảo range hợp lý với Bollinger Bands
+  if (priceRange.max > bbUpper * 1.02) {
+    priceRange.max = bbUpper * 1.02;
+  }
+  if (priceRange.min < bbLower * 0.98) {
+    priceRange.min = bbLower * 0.98;
+  }
+
+  // 11. Tính expected change percentage
+  const expectedChange = ((predictedPrice - currentPrice) / currentPrice) * 100;
+
+  return {
+    predictedPrice: Number(predictedPrice.toFixed(2)),
+    priceRange: {
+      min: Number(priceRange.min.toFixed(2)),
+      max: Number(priceRange.max.toFixed(2)),
+    },
+    expectedChange: Number(expectedChange.toFixed(3)),
+  };
+}
+

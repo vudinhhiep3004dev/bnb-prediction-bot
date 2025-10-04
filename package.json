@@ -14,7 +14,8 @@
     "test:ai": "tsx scripts/test-ai.ts",
     "test:indicators": "tsx scripts/test-indicators.ts",
     "test:enhanced": "tsx scripts/test-enhanced-indicators.ts",
-    "test:all": "bun run test:binance && bun run test:indicators && bun run test:enhanced && bun run test:ai"
+    "test:price": "tsx scripts/test-price-prediction.ts",
+    "test:all": "bun run test:binance && bun run test:indicators && bun run test:enhanced && bun run test:price && bun run test:ai"
   },
   "keywords": [
     "telegram",
