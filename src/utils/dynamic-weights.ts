@@ -229,16 +229,21 @@ function calculateDynamicWeights(
   if (allConditions.includes('WHALE_ACTIVITY') && primaryCondition !== 'WHALE_ACTIVITY') {
     // Boost order book slightly
     weights.orderBook += 0.05;
-    weights.trend -= 0.03;
-    weights.volume -= 0.02;
+    weights.trend = Math.max(0.02, weights.trend - 0.03);
+    weights.volume = Math.max(0.02, weights.volume - 0.02);
   }
-  
+
   if (allConditions.includes('MOMENTUM_EXTREME') && primaryCondition !== 'MOMENTUM_EXTREME') {
     // Boost momentum slightly
     weights.momentum += 0.05;
-    weights.volume -= 0.05;
+    weights.volume = Math.max(0.02, weights.volume - 0.05);
   }
-  
+
+  // Ensure no negative weights
+  Object.keys(weights).forEach(key => {
+    weights[key as keyof DynamicWeights] = Math.max(0.02, weights[key as keyof DynamicWeights]);
+  });
+
   // Normalize to ensure sum = 1.0
   const sum = Object.values(weights).reduce((a, b) => a + b, 0);
   if (Math.abs(sum - 1.0) > 0.001) {
