@@ -1,7 +1,7 @@
 {
   "name": "bnb-prediction-bot",
-  "version": "2.0.0",
-  "description": "Telegram bot for BNB price prediction with enhanced accuracy (60-75%) using weighted scoring system, 13 technical indicators, and advanced order flow analysis for PancakeSwap Prediction game",
+  "version": "2.2.0",
+  "description": "Telegram bot for BNB price prediction with enhanced accuracy (60-75%) using dynamic weighting system, 13 technical indicators, and advanced order flow analysis for PancakeSwap Prediction game",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
