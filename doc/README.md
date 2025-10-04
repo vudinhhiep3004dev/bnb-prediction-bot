@@ -4,12 +4,20 @@ Telegram bot dự đoán giá BNB tăng hay giảm trong 5 phút sử dụng AI 
 
 ## Tính năng
 
+### Core Features
 - 🔮 Dự đoán giá BNB tăng/giảm trong 5 phút
+- 💰 **[MỚI]** Dự đoán giá cụ thể (predicted price) cho 5 phút tiếp theo
+- 📊 **[MỚI]** Hiển thị khoảng giá dự kiến (price range)
+- 📈 **[MỚI]** Tính toán % thay đổi dự kiến (expected change)
 - 🤖 Sử dụng AI Gemini 2.5 Flash thông qua Cloudflare AI Gateway
 - 📊 Phân tích dữ liệu từ Binance API (klines, volume, indicators)
 - 💬 Giao diện Telegram bot thân thiện
 - 📈 Hiển thị độ tin cậy của dự đoán
 - 🎯 Tích hợp với PancakeSwap Prediction game
+
+### Technical Indicators (10 chỉ số)
+- **Traditional Indicators**: RSI, MACD, EMA, SMA, Bollinger Bands
+- **Enhanced Indicators**: Order Book Depth, Trade Flow Analysis, ATR, Stochastic Oscillator, VWAP
 
 ## Công nghệ sử dụng
 
