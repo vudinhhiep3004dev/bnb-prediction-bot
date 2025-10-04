@@ -41,11 +41,34 @@ else
     exit 1
 fi
 
+# Check for local changes
+print_step "Checking for local changes..."
+if ! git diff-index --quiet HEAD --; then
+    print_step "Local changes detected, stashing..."
+    git stash push -m "Auto-stash before update $(date +%Y%m%d_%H%M%S)"
+    STASHED=true
+    echo -e "${GREEN}✓${NC} Local changes stashed"
+else
+    STASHED=false
+fi
+
 # Pull latest changes
 print_step "Pulling latest changes from git..."
 git fetch origin
 git pull origin main
 echo -e "${GREEN}✓${NC} Code updated"
+
+# Restore stashed changes if any
+if [ "$STASHED" = true ]; then
+    print_step "Restoring stashed changes..."
+    if git stash pop; then
+        echo -e "${GREEN}✓${NC} Stashed changes restored"
+    else
+        print_error "Failed to restore stashed changes. Please resolve manually."
+        echo "Run: git stash list"
+        echo "Then: git stash pop"
+    fi
+fi
 
 # Update dependencies
 print_step "Updating dependencies..."
