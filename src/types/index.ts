@@ -223,6 +223,57 @@ export interface BotConfig {
   };
 }
 
+// Chainlink Oracle Types
+export interface ChainlinkPriceData {
+  price: number;
+  roundId: bigint;
+  updatedAt: number;
+  source: 'CHAINLINK';
+}
+
+// PancakeSwap Prediction Round Types
+export interface PredictionRound {
+  epoch: bigint;
+  startTimestamp: number;
+  lockTimestamp: number;
+  closeTimestamp: number;
+  lockPrice: number | null;
+  closePrice: number | null;
+  totalAmount: bigint;
+  bullAmount: bigint;
+  bearAmount: bigint;
+  rewardBaseCalAmount: bigint;
+  rewardAmount: bigint;
+  oracleCalled: boolean;
+}
+
+export interface RoundTiming {
+  currentEpoch: bigint;
+  nextRoundStart: number;
+  timeUntilNextRound: number;
+  optimalPredictionTime: number; // 30s before next round
+  isOptimalTime: boolean;
+}
+
+// Price Source Types
+export interface PriceData {
+  price: number;
+  source: 'CHAINLINK' | 'BINANCE';
+  timestamp: number;
+  confidence: number; // 0-1, based on source reliability
+}
+
+export interface HybridPriceData {
+  chainlinkPrice: number | null;
+  binancePrice: number;
+  selectedPrice: number;
+  selectedSource: 'CHAINLINK' | 'BINANCE';
+  priceDifference: number; // Absolute difference
+  priceDifferencePercent: number; // Percentage difference
+  confidenceAdjustment: number; // Multiplier for prediction confidence
+  timestamp: number;
+}
+
 // Bot Command Types
 export interface PredictionResult {
   prediction: 'UP' | 'DOWN';
@@ -241,5 +292,12 @@ export interface PredictionResult {
     volume: string;
   };
   timestamp: Date;
+  // NEW: Hybrid price info
+  priceSource?: 'CHAINLINK' | 'BINANCE';
+  priceConfidence?: number;
+  roundInfo?: {
+    currentEpoch: bigint;
+    timeUntilLock: number;
+  };
 }
 

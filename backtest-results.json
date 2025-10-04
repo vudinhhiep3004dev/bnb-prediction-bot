@@ -1,28 +1,28 @@
 {
-  "totalPredictions": 1,
-  "correctPredictions": 1,
-  "incorrectPredictions": 0,
-  "accuracy": 100,
-  "winRate": 100,
-  "profitLoss": 96,
-  "sharpeRatio": 0,
-  "maxDrawdown": 0,
-  "avgConfidence": 65,
+  "totalPredictions": 8,
+  "correctPredictions": 5,
+  "incorrectPredictions": 3,
+  "accuracy": 62.5,
+  "winRate": 62.5,
+  "profitLoss": 180,
+  "sharpeRatio": 0.23712142935963776,
+  "maxDrawdown": 100,
+  "avgConfidence": 63.75,
   "accuracyByConfidence": {
     "high": {
-      "total": 0,
-      "correct": 0,
-      "accuracy": 0
-    },
-    "medium": {
       "total": 1,
       "correct": 1,
       "accuracy": 100
     },
+    "medium": {
+      "total": 5,
+      "correct": 2,
+      "accuracy": 40
+    },
     "low": {
-      "total": 0,
-      "correct": 0,
-      "accuracy": 0
+      "total": 2,
+      "correct": 2,
+      "accuracy": 100
     }
   },
   "accuracyByMarketCondition": {
@@ -32,9 +32,9 @@
       "accuracy": 0
     },
     "ranging": {
-      "total": 1,
-      "correct": 1,
-      "accuracy": 100
+      "total": 8,
+      "correct": 5,
+      "accuracy": 62.5
     },
     "volatile": {
       "total": 0,
@@ -44,15 +44,99 @@
   },
   "predictions": [
     {
+      "timestamp": "2025-10-04T03:29:59.999Z",
+      "prediction": "DOWN",
+      "confidence": 68,
+      "currentPrice": 1174.49,
+      "predictedPrice": 1170.87,
+      "actualPrice": 1175.8,
+      "actualChange": 0.11153777384225881,
+      "correct": false,
+      "profitLoss": -100,
+      "marketCondition": "RANGING"
+    },
+    {
+      "timestamp": "2025-10-04T03:34:59.999Z",
+      "prediction": "DOWN",
+      "confidence": 80,
+      "currentPrice": 1175.8,
+      "predictedPrice": 1171.06,
+      "actualPrice": 1172.17,
+      "actualChange": -0.30872597380505884,
+      "correct": true,
+      "profitLoss": 96,
+      "marketCondition": "RANGING"
+    },
+    {
+      "timestamp": "2025-10-04T03:39:59.999Z",
+      "prediction": "DOWN",
+      "confidence": 45,
+      "currentPrice": 1172.17,
+      "predictedPrice": 1171.14,
+      "actualPrice": 1171.21,
+      "actualChange": -0.08189938319527341,
+      "correct": true,
+      "profitLoss": 96,
+      "marketCondition": "RANGING"
+    },
+    {
       "timestamp": "2025-10-04T03:44:59.999Z",
       "prediction": "DOWN",
       "confidence": 65,
       "currentPrice": 1171.21,
-      "predictedPrice": 1171.15,
+      "predictedPrice": 1170.68,
       "actualPrice": 1169.18,
       "actualChange": -0.17332502283962506,
       "correct": true,
       "profitLoss": 96,
+      "marketCondition": "RANGING"
+    },
+    {
+      "timestamp": "2025-10-04T03:49:59.999Z",
+      "prediction": "DOWN",
+      "confidence": 70,
+      "currentPrice": 1169.18,
+      "predictedPrice": 1170.68,
+      "actualPrice": 1170.36,
+      "actualChange": 0.10092543492018646,
+      "correct": false,
+      "profitLoss": -100,
+      "marketCondition": "RANGING"
+    },
+    {
+      "timestamp": "2025-10-04T03:59:59.999Z",
+      "prediction": "DOWN",
+      "confidence": 75,
+      "currentPrice": 1170.39,
+      "predictedPrice": 1171.1,
+      "actualPrice": 1167.98,
+      "actualChange": -0.20591426789361508,
+      "correct": true,
+      "profitLoss": 96,
+      "marketCondition": "RANGING"
+    },
+    {
+      "timestamp": "2025-10-04T04:04:59.999Z",
+      "prediction": "UP",
+      "confidence": 47,
+      "currentPrice": 1167.98,
+      "predictedPrice": 1171.85,
+      "actualPrice": 1171.57,
+      "actualChange": 0.3073682768540487,
+      "correct": true,
+      "profitLoss": 96,
+      "marketCondition": "RANGING"
+    },
+    {
+      "timestamp": "2025-10-04T04:09:59.999Z",
+      "prediction": "UP",
+      "confidence": 60,
+      "currentPrice": 1171.57,
+      "predictedPrice": 1171.52,
+      "actualPrice": 1171.18,
+      "actualChange": -0.033288663929587875,
+      "correct": false,
+      "profitLoss": -100,
       "marketCondition": "RANGING"
     }
   ]

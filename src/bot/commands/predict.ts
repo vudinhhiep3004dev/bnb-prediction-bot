@@ -24,6 +24,25 @@ export async function predictCommand(ctx: Context) {
         ? `🟢 $${prediction.predictedPrice.toFixed(2)}`
         : `🔴 $${prediction.predictedPrice.toFixed(2)}`;
 
+    // Format price source info
+    const priceSourceEmoji = prediction.priceSource === 'CHAINLINK' ? '🔗' : '📊';
+    const priceSourceText = prediction.priceSource === 'CHAINLINK' ? 'Chainlink Oracle' : 'Binance';
+    const priceConfidenceText = prediction.priceConfidence
+      ? `${(prediction.priceConfidence * 100).toFixed(0)}%`
+      : '100%';
+
+    // Format round info
+    let roundInfoText = '';
+    if (prediction.roundInfo) {
+      const timeUntilLock = prediction.roundInfo.timeUntilLock;
+      const minutes = Math.floor(timeUntilLock / 60);
+      const seconds = timeUntilLock % 60;
+      roundInfoText = `\n🎲 **Vòng hiện tại:** #${prediction.roundInfo.currentEpoch.toString()}`;
+      if (timeUntilLock > 0) {
+        roundInfoText += `\n⏱️ **Thời gian còn lại:** ${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
+    }
+
     const message = `
 ${emoji} **DỰ ĐOÁN GIÁ BNB - 5 PHÚT TỚI**
 
@@ -32,12 +51,14 @@ ${confidenceEmoji} **Độ tin cậy:** ${prediction.confidence.toFixed(1)}%
 ${riskEmoji} **Mức độ rủi ro:** ${getRiskLevel(prediction.confidence)}
 
 💰 **Giá hiện tại:** $${prediction.currentPrice.toFixed(2)}
+${priceSourceEmoji} **Nguồn giá:** ${priceSourceText} (${priceConfidenceText})
 🎯 **Giá dự kiến:** ${predictedPriceText}
 ${priceChangeEmoji} **Thay đổi dự kiến:** ${prediction.expectedChange > 0 ? '+' : ''}${prediction.expectedChange.toFixed(2)}%
 
 📊 **Khoảng giá dự kiến:**
 • Thấp nhất: $${prediction.priceRange.min.toFixed(2)}
 • Cao nhất: $${prediction.priceRange.max.toFixed(2)}
+${roundInfoText}
 
 📈 **Chỉ số kỹ thuật:**
 • RSI: ${prediction.indicators.rsi.toFixed(2)} ${getRSIStatus(prediction.indicators.rsi)}
@@ -50,6 +71,7 @@ ${prediction.reasoning}
 ⏰ **Thời gian:** ${prediction.timestamp.toLocaleString('vi-VN')}
 
 ⚠️ **Lưu ý:**
+• Dự đoán sử dụng ${priceSourceText} - cùng nguồn với PancakeSwap
 • Giá dự kiến dựa trên phân tích kỹ thuật và có thể sai lệch
 • Thị trường crypto biến động cao, giá có thể thay đổi đột ngột
 • Chỉ mang tính chất tham khảo, không phải lời khuyên đầu tư

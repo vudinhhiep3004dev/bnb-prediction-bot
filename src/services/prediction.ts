@@ -1,5 +1,8 @@
 import { BinanceService } from './binance.js';
 import { AIService } from './ai.js';
+import { ChainlinkService } from './chainlink.js';
+import { RoundMonitorService } from './round-monitor.js';
+import { HybridPriceService } from './hybrid-price.js';
 import { calculateIndicators, calculatePredictedPrice } from '../utils/indicators.js';
 import { PredictionResult } from '../types/index.js';
 import { logger } from '../utils/logger.js';
@@ -7,56 +10,107 @@ import { logger } from '../utils/logger.js';
 export class PredictionService {
   private binanceService: BinanceService;
   private aiService: AIService;
+  private chainlinkService: ChainlinkService;
+  private roundMonitorService: RoundMonitorService;
+  private hybridPriceService: HybridPriceService;
 
   constructor() {
     this.binanceService = new BinanceService();
     this.aiService = new AIService();
+    this.chainlinkService = new ChainlinkService();
+    this.roundMonitorService = new RoundMonitorService(this.chainlinkService);
+    this.hybridPriceService = new HybridPriceService(
+      this.chainlinkService,
+      this.binanceService
+    );
   }
 
   /**
-   * Generate a complete prediction for BNB price
+   * Generate a complete prediction for BNB price using Hybrid Approach
    */
   async generatePrediction(symbol: string = 'BNBUSDT'): Promise<PredictionResult> {
     try {
-      logger.info(`Generating prediction for ${symbol}...`);
+      logger.info(`🚀 Generating HYBRID prediction for ${symbol}...`);
 
-      // Step 1: Fetch enhanced market data (includes order book & trade flow)
-      logger.info('Fetching enhanced market data from Binance...');
+      // Step 1: Get hybrid price data (Chainlink + Binance)
+      logger.info('📊 Step 1: Fetching hybrid price data...');
+      const hybridPrice = await this.hybridPriceService.getHybridPrice(symbol);
+
+      logger.info('✅ Hybrid price obtained:', {
+        selectedPrice: hybridPrice.selectedPrice.toFixed(2),
+        source: hybridPrice.selectedSource,
+        chainlinkAvailable: hybridPrice.chainlinkPrice !== null,
+        confidenceAdjustment: (hybridPrice.confidenceAdjustment * 100).toFixed(1) + '%',
+      });
+
+      // Step 2: Get round timing information
+      logger.info('⏰ Step 2: Checking round timing...');
+      let roundTiming;
+      let timeUntilLock = 0;
+      try {
+        roundTiming = await this.roundMonitorService.getRoundTiming();
+        timeUntilLock = await this.roundMonitorService.getTimeUntilLock();
+
+        logger.info('✅ Round timing obtained:', {
+          currentEpoch: roundTiming.currentEpoch.toString(),
+          timeUntilNextRound: `${roundTiming.timeUntilNextRound}s`,
+          timeUntilLock: `${timeUntilLock}s`,
+          isOptimalTime: roundTiming.isOptimalTime,
+        });
+      } catch (error) {
+        logger.warn('⚠️  Could not fetch round timing (non-critical):', error);
+      }
+
+      // Step 3: Fetch enhanced market data (includes order book & trade flow)
+      logger.info('📈 Step 3: Fetching enhanced market data from Binance...');
       const marketData = await this.binanceService.getEnhancedMarketData(
         symbol,
         '5m',
         100
       );
 
-      // Step 2: Calculate technical indicators with recent trades for volume delta
-      logger.info('Calculating technical indicators...');
+      // Override current price with hybrid price
+      marketData.currentPrice = hybridPrice.selectedPrice;
+
+      // Step 4: Calculate technical indicators with recent trades for volume delta
+      logger.info('🔢 Step 4: Calculating technical indicators...');
       const recentTrades = marketData.recentTrades
         ? await this.binanceService.getRecentTrades(symbol, 100)
         : undefined;
       const indicators = calculateIndicators(marketData.klines, recentTrades);
 
-      // Step 3: Get AI prediction
-      logger.info('Requesting AI analysis...');
+      // Step 5: Get AI prediction
+      logger.info('🤖 Step 5: Requesting AI analysis...');
       const aiPrediction = await this.aiService.generatePrediction({
         marketData,
         indicators,
       });
 
-      // Step 4: Calculate predicted price
-      logger.info('Calculating predicted price...');
+      // Step 6: Apply confidence adjustment based on price source
+      logger.info('⚖️  Step 6: Applying confidence adjustment...');
+      const adjustedConfidence = aiPrediction.confidence * hybridPrice.confidenceAdjustment;
+
+      logger.info('Confidence adjustment:', {
+        original: aiPrediction.confidence.toFixed(1) + '%',
+        adjustment: (hybridPrice.confidenceAdjustment * 100).toFixed(1) + '%',
+        adjusted: adjustedConfidence.toFixed(1) + '%',
+      });
+
+      // Step 7: Calculate predicted price
+      logger.info('💰 Step 7: Calculating predicted price...');
       const priceCalculation = calculatePredictedPrice(
-        marketData.currentPrice,
+        hybridPrice.selectedPrice,
         aiPrediction.prediction,
         indicators,
         marketData.orderBook,
         marketData.recentTrades
       );
 
-      // Step 5: Format result
+      // Step 8: Format result
       const result: PredictionResult = {
         prediction: aiPrediction.prediction,
-        confidence: aiPrediction.confidence,
-        currentPrice: marketData.currentPrice,
+        confidence: adjustedConfidence,
+        currentPrice: hybridPrice.selectedPrice,
         predictedPrice: priceCalculation.predictedPrice,
         priceRange: priceCalculation.priceRange,
         expectedChange: priceCalculation.expectedChange,
@@ -67,13 +121,24 @@ export class PredictionService {
           volume: this.determineVolumeSignal(indicators.volumeProfile.currentVolumeRatio),
         },
         timestamp: new Date(),
+        // NEW: Add hybrid price info
+        priceSource: hybridPrice.selectedSource,
+        priceConfidence: hybridPrice.confidenceAdjustment,
+        roundInfo: roundTiming
+          ? {
+              currentEpoch: roundTiming.currentEpoch,
+              timeUntilLock,
+            }
+          : undefined,
       };
 
-      logger.info('Prediction generated successfully:', {
+      logger.info('✅ HYBRID prediction generated successfully:', {
         prediction: result.prediction,
-        confidence: result.confidence,
-        predictedPrice: result.predictedPrice,
-        expectedChange: result.expectedChange,
+        confidence: result.confidence.toFixed(1) + '%',
+        predictedPrice: result.predictedPrice.toFixed(2),
+        expectedChange: result.expectedChange.toFixed(2) + '%',
+        priceSource: result.priceSource,
+        priceConfidence: ((result.priceConfidence || 1) * 100).toFixed(1) + '%',
       });
 
       return result;
