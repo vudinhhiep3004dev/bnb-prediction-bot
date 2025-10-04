@@ -77,6 +77,14 @@ export interface OrderBookData {
   topBidPrice: number;
   topAskPrice: number;
   depthQuality: 'THIN' | 'NORMAL' | 'DEEP';
+  // ENHANCED METRICS
+  weightedBuyPressure: number; // Weighted by distance from current price
+  orderFlowImbalance: number; // Advanced imbalance metric
+  whaleActivity: {
+    whaleOrderCount: number;
+    whaleVolume: number;
+    whaleSide: 'BID' | 'ASK' | 'BALANCED';
+  };
 }
 
 export interface TradeFlowData {
@@ -89,6 +97,11 @@ export interface TradeFlowData {
   aggressiveBuyPercent: number;
   aggressiveSellPercent: number;
   recentTrend: 'STRONG_BUY' | 'BUY' | 'NEUTRAL' | 'SELL' | 'STRONG_SELL';
+  // ENHANCED METRICS
+  timeWeightedBuyRatio: number; // Recent trades weighted more
+  tradeAcceleration: number; // Velocity change rate
+  whaleTradeCount: number; // Trades > 5x average
+  volumeWeightedAggressiveBuy: number; // Weighted by trade size
 }
 
 export interface TechnicalIndicators {
@@ -99,14 +112,16 @@ export interface TechnicalIndicators {
     histogram: number;
   };
   ema: {
-    ema9: number;
+    ema5: number;
+    ema13: number;
     ema21: number;
-    ema50: number;
   };
   bollingerBands: {
     upper: number;
     middle: number;
     lower: number;
+    bandwidth: number;
+    percentB: number;
   };
   volumeProfile: {
     averageVolume: number;
@@ -116,6 +131,7 @@ export interface TechnicalIndicators {
     value: number;
     percent: number;
     level: 'LOW' | 'MEDIUM' | 'HIGH';
+    trend: 'INCREASING' | 'STABLE' | 'DECREASING';
   };
   stochastic: {
     k: number;
@@ -126,6 +142,24 @@ export interface TechnicalIndicators {
     value: number;
     priceVsVWAP: number;
     position: 'ABOVE' | 'BELOW';
+    upperBand: number;
+    lowerBand: number;
+  };
+  // NEW INDICATORS
+  mfi: {
+    value: number;
+    signal: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+    divergence: boolean;
+  };
+  obv: {
+    value: number;
+    trend: 'BULLISH' | 'NEUTRAL' | 'BEARISH';
+    divergence: boolean;
+  };
+  volumeDelta: {
+    current: number;
+    cumulative: number;
+    trend: 'BULLISH' | 'NEUTRAL' | 'BEARISH';
   };
 }
 

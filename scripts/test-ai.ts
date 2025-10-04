@@ -31,10 +31,15 @@ async function testAIService() {
     // Calculate indicators
     console.log('📈 Calculating technical indicators...');
     const indicators = calculateIndicators(marketData.klines);
-    console.log('✅ Indicators calculated:');
-    console.log(`   RSI: ${indicators.rsi.toFixed(2)}`);
+    console.log('✅ Indicators calculated (v2.0.0):');
+    console.log(`   RSI (9): ${indicators.rsi.toFixed(2)}`);
     console.log(`   MACD: ${indicators.macd.macd.toFixed(4)}`);
-    console.log(`   EMA(9): $${indicators.ema.ema9.toFixed(2)}`);
+    console.log(`   EMA5: $${indicators.ema.ema5.toFixed(2)}`);
+    console.log(`   EMA13: $${indicators.ema.ema13.toFixed(2)}`);
+    console.log(`   EMA21: $${indicators.ema.ema21.toFixed(2)}`);
+    console.log(`   MFI (9): ${indicators.mfi.value.toFixed(2)} - ${indicators.mfi.signal}`);
+    console.log(`   OBV: ${indicators.obv.trend}`);
+    console.log(`   Volume Delta: ${indicators.volumeDelta.trend}`);
     console.log();
 
     // Generate prediction

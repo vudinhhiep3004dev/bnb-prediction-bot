@@ -170,11 +170,12 @@ export class BinanceService {
         this.getRecentTrades(symbol, 100),
       ]);
 
-      const orderBookData = analyzeOrderBook(orderBook);
+      const currentPrice = parseFloat(ticker24hr.lastPrice);
+      const orderBookData = analyzeOrderBook(orderBook, currentPrice);
       const tradeFlowData = analyzeTradeFlow(recentTrades);
 
       return {
-        currentPrice: parseFloat(ticker24hr.lastPrice),
+        currentPrice,
         priceChange24h: parseFloat(ticker24hr.priceChange),
         priceChangePercent24h: parseFloat(ticker24hr.priceChangePercent),
         volume24h: parseFloat(ticker24hr.volume),

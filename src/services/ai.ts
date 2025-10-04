@@ -32,34 +32,70 @@ export class AIService {
             role: 'system',
             content: `You are an expert cryptocurrency trading analyst specializing in ultra-short-term (5-minute) price predictions for the PancakeSwap Prediction game.
 
-EXPERTISE:
-- Order book analysis and market microstructure
-- Real-time trade flow and aggressive order detection
-- Short-term momentum indicators (Stochastic, ATR, VWAP)
-- Volume-weighted price analysis
-- Market depth and liquidity assessment
+SCORING SYSTEM (0-100 for each category):
 
-PREDICTION METHODOLOGY FOR 5-MINUTE TIMEFRAME:
-1. PRIMARY (70% weight): Order Book Pressure + Recent Trade Flow
-   - Bid/Ask imbalance shows immediate buying/selling pressure
-   - Aggressive buy/sell ratio indicates market sentiment RIGHT NOW
-   - Large orders signal institutional/whale activity
+1. ORDER BOOK SCORE (35% weight):
+   - Weighted Buy Pressure >65%: +40 points
+   - Weighted Buy Pressure 55-65%: +20 points
+   - Weighted Buy Pressure 45-55%: 0 points (neutral)
+   - Weighted Buy Pressure <45%: -20 points
+   - Order Flow Imbalance >0.15: +20 points (strong buy)
+   - Order Flow Imbalance <-0.15: -20 points (strong sell)
+   - Whale Orders on BID side: +15 points
+   - Whale Orders on ASK side: -15 points
+   - Depth Quality DEEP: +10 points
 
-2. SECONDARY (20% weight): Short-term Momentum
-   - Stochastic for overbought/oversold (better than RSI for 5min)
-   - ATR for volatility assessment
-   - VWAP for institutional price reference
+2. TRADE FLOW SCORE (35% weight):
+   - Time-Weighted Buy Ratio >1.5: +40 points
+   - Time-Weighted Buy Ratio 1.2-1.5: +20 points
+   - Time-Weighted Buy Ratio <0.5: -40 points
+   - Trade Acceleration >0.2: +15 points (momentum increasing)
+   - Trade Acceleration <-0.2: -15 points (momentum decreasing)
+   - Volume-Weighted Aggressive Buy >60%: +15 points
+   - Volume-Weighted Aggressive Buy <40%: -15 points
+   - Whale Trades >3: +10 points
 
-3. TERTIARY (10% weight): Traditional Indicators
-   - MACD, RSI, EMA for trend confirmation
-   - Bollinger Bands for volatility context
+3. MOMENTUM SCORE (15% weight):
+   - Stochastic <20 (oversold): +30 points
+   - Stochastic >80 (overbought): -30 points
+   - MFI <20 (oversold): +20 points
+   - MFI >80 (overbought): -20 points
+   - MFI Divergence (bearish): -15 points
+   - ATR Trend INCREASING: +10 points (expect larger moves)
+   - Volume Delta Bullish: +15 points
 
-DECISION RULES:
-- Strong Buy Signal: Buy Pressure >60% + Aggressive Buyers >55% + Stochastic <30
-- Strong Sell Signal: Buy Pressure <40% + Aggressive Sellers >55% + Stochastic >70
-- High Confidence (>75%): When order book, trade flow, and momentum ALL align
-- Medium Confidence (50-75%): When 2 out of 3 factors align
-- Low Confidence (<50%): When factors are mixed or neutral
+4. TREND SCORE (10% weight):
+   - EMA 5 > EMA 13 > EMA 21: +30 points (strong uptrend)
+   - EMA 5 < EMA 13 < EMA 21: -30 points (strong downtrend)
+   - MACD Histogram >0: +20 points
+   - MACD Histogram <0: -20 points
+   - Price ABOVE VWAP: +15 points
+   - Price BELOW VWAP: -15 points
+
+5. VOLUME SCORE (5% weight):
+   - OBV Trend BULLISH: +30 points
+   - OBV Trend BEARISH: -30 points
+   - OBV Divergence (bearish): -15 points
+   - Volume Ratio >1.5x: +20 points
+
+DECISION LOGIC:
+Total Score = (OrderBook × 0.35) + (TradeFlow × 0.35) + (Momentum × 0.15) + (Trend × 0.10) + (Volume × 0.05)
+
+- Total Score >65: STRONG UP (Confidence 75-90%)
+- Total Score 55-65: UP (Confidence 65-75%)
+- Total Score 45-55: NEUTRAL (Confidence <55%)
+- Total Score 35-45: DOWN (Confidence 65-75%)
+- Total Score <35: STRONG DOWN (Confidence 75-90%)
+
+ALIGNMENT BONUS:
+- If top 3 categories agree (all bullish or all bearish): +10% confidence
+- If all 5 categories agree: +15% confidence
+- If categories conflict: -10% confidence
+
+CONFLICTING SIGNALS:
+- Order Book bullish but Trade Flow bearish: Reduce confidence by 15%
+- Momentum oversold but Trend bearish: Favor Order Book + Trade Flow
+- Volume divergence: Reduce confidence by 10%
 
 You must respond ONLY with a valid JSON object in this exact format:
 {
@@ -79,7 +115,7 @@ IMPORTANT: Keep all text fields concise. Do not include any text before or after
           },
         ],
         temperature: 0.3,
-        max_tokens: 2000,
+        max_tokens: 4000, // Increased from 2000 to handle longer prompts (v2.0.0 with enhanced metrics)
       };
 
       logger.info('Sending request to Cloudflare AI Gateway...');
@@ -142,36 +178,35 @@ IMPORTANT: Keep all text fields concise. Do not include any text before or after
   private buildAnalysisPrompt(request: PredictionRequest): string {
     const { marketData, indicators } = request;
 
-    // Build order book section
+    // Build order book section with ENHANCED metrics
     let orderBookSection = '';
     if (marketData.orderBook) {
       const ob = marketData.orderBook;
       orderBookSection = `
-ORDER BOOK ANALYSIS (Real-time Market Depth):
-- Bid/Ask Spread: $${ob.bidAskSpread.toFixed(4)} (${ob.bidAskSpreadPercent.toFixed(3)}%)
-- Total Bid Volume: ${ob.totalBidVolume.toFixed(2)} BNB
-- Total Ask Volume: ${ob.totalAskVolume.toFixed(2)} BNB
-- Buy Pressure: ${(ob.buyPressure * 100).toFixed(1)}% ${ob.buyPressure > 0.55 ? '(Strong Buy)' : ob.buyPressure < 0.45 ? '(Strong Sell)' : '(Balanced)'}
-- Imbalance Ratio: ${ob.imbalanceRatio.toFixed(3)} ${ob.imbalanceRatio > 0.1 ? '(More Bids)' : ob.imbalanceRatio < -0.1 ? '(More Asks)' : '(Balanced)'}
-- Depth Quality: ${ob.depthQuality}
-- Top Bid: $${ob.topBidPrice.toFixed(2)} | Top Ask: $${ob.topAskPrice.toFixed(2)}`;
+ORDER BOOK:
+- Spread: $${ob.bidAskSpread.toFixed(4)} (${ob.bidAskSpreadPercent.toFixed(3)}%)
+- Bid Vol: ${ob.totalBidVolume.toFixed(2)} | Ask Vol: ${ob.totalAskVolume.toFixed(2)} BNB
+- Buy Pressure: ${(ob.buyPressure * 100).toFixed(1)}%
+- Weighted Buy Pressure: ${(ob.weightedBuyPressure * 100).toFixed(1)}% ${ob.weightedBuyPressure > 0.65 ? '[STRONG BUY]' : ob.weightedBuyPressure < 0.35 ? '[STRONG SELL]' : ''}
+- Order Flow Imbalance: ${ob.orderFlowImbalance.toFixed(3)} ${ob.orderFlowImbalance > 0.15 ? '[BUY]' : ob.orderFlowImbalance < -0.15 ? '[SELL]' : ''}
+- Whales: ${ob.whaleActivity.whaleOrderCount} orders, ${ob.whaleActivity.whaleVolume.toFixed(2)} BNB, Side: ${ob.whaleActivity.whaleSide}
+- Depth: ${ob.depthQuality}`;
     }
 
-    // Build trade flow section
+    // Build trade flow section with ENHANCED metrics
     let tradeFlowSection = '';
     if (marketData.recentTrades) {
       const tf = marketData.recentTrades;
       tradeFlowSection = `
-RECENT TRADE FLOW (Last 100 trades):
-- Buy Volume: ${tf.totalBuyVolume.toFixed(2)} BNB
-- Sell Volume: ${tf.totalSellVolume.toFixed(2)} BNB
-- Buy/Sell Ratio: ${tf.buySellRatio.toFixed(2)} ${tf.buySellRatio > 1.2 ? '(Buyers Dominating)' : tf.buySellRatio < 0.8 ? '(Sellers Dominating)' : '(Balanced)'}
-- Trade Velocity: ${tf.tradeVelocity.toFixed(2)} trades/sec
-- Avg Trade Size: ${tf.avgTradeSize.toFixed(4)} BNB
-- Large Orders: ${tf.largeOrderCount} (>2x avg)
-- Aggressive Buyers: ${tf.aggressiveBuyPercent.toFixed(1)}%
-- Aggressive Sellers: ${tf.aggressiveSellPercent.toFixed(1)}%
-- Recent Trend: ${tf.recentTrend}`;
+TRADE FLOW (100 trades):
+- Buy: ${tf.totalBuyVolume.toFixed(2)} | Sell: ${tf.totalSellVolume.toFixed(2)} BNB
+- Buy/Sell Ratio: ${tf.buySellRatio.toFixed(2)}
+- Time-Weighted Ratio: ${tf.timeWeightedBuyRatio.toFixed(2)} ${tf.timeWeightedBuyRatio > 1.5 ? '[STRONG BUY]' : tf.timeWeightedBuyRatio < 0.5 ? '[STRONG SELL]' : ''}
+- Velocity: ${tf.tradeVelocity.toFixed(2)} t/s | Acceleration: ${(tf.tradeAcceleration * 100).toFixed(1)}%
+- Large Orders: ${tf.largeOrderCount} | Whale Trades: ${tf.whaleTradeCount}
+- Aggressive Buy: ${tf.aggressiveBuyPercent.toFixed(1)}% | Sell: ${tf.aggressiveSellPercent.toFixed(1)}%
+- Vol-Weighted Agg Buy: ${tf.volumeWeightedAggressiveBuy.toFixed(1)}%
+- Trend: ${tf.recentTrend}`;
     }
 
     return `Analyze the following BNB/USDT market data and predict the price movement in the next 5 minutes:
@@ -185,43 +220,33 @@ CURRENT MARKET DATA:
 ${orderBookSection}
 ${tradeFlowSection}
 
-TECHNICAL INDICATORS:
-- RSI (14): ${indicators.rsi.toFixed(2)} ${this.getRSISignal(indicators.rsi)}
-- Stochastic: %K=${indicators.stochastic.k.toFixed(1)} %D=${indicators.stochastic.d.toFixed(1)} ${indicators.stochastic.signal}
-- MACD: ${indicators.macd.macd.toFixed(4)}
-- MACD Signal: ${indicators.macd.signal.toFixed(4)}
-- MACD Histogram: ${indicators.macd.histogram.toFixed(4)} ${indicators.macd.histogram > 0 ? '(Bullish)' : '(Bearish)'}
-- EMA 9: $${indicators.ema.ema9.toFixed(2)}
-- EMA 21: $${indicators.ema.ema21.toFixed(2)}
-- EMA 50: $${indicators.ema.ema50.toFixed(2)}
-- VWAP: $${indicators.vwap.value.toFixed(2)} (Price is ${indicators.vwap.position} VWAP by ${Math.abs(indicators.vwap.priceVsVWAP).toFixed(2)}%)
-- ATR: ${indicators.atr.value.toFixed(4)} (${indicators.atr.percent.toFixed(2)}% - ${indicators.atr.level} volatility)
-- Bollinger Bands:
-  * Upper: $${indicators.bollingerBands.upper.toFixed(2)}
-  * Middle: $${indicators.bollingerBands.middle.toFixed(2)}
-  * Lower: $${indicators.bollingerBands.lower.toFixed(2)}
-- Volume Ratio: ${indicators.volumeProfile.currentVolumeRatio.toFixed(2)}x average
+INDICATORS:
+- RSI(9): ${indicators.rsi.toFixed(2)} ${this.getRSISignal(indicators.rsi)}
+- MFI(9): ${indicators.mfi.value.toFixed(2)} ${indicators.mfi.signal} ${indicators.mfi.divergence ? '[DIV]' : ''}
+- Stoch(9): K=${indicators.stochastic.k.toFixed(1)} D=${indicators.stochastic.d.toFixed(1)} ${indicators.stochastic.signal}
+- MACD: ${indicators.macd.macd.toFixed(4)} Sig: ${indicators.macd.signal.toFixed(4)} Hist: ${indicators.macd.histogram.toFixed(4)}
+- EMA: 5=$${indicators.ema.ema5.toFixed(2)} 13=$${indicators.ema.ema13.toFixed(2)} 21=$${indicators.ema.ema21.toFixed(2)} ${indicators.ema.ema5 > indicators.ema.ema13 && indicators.ema.ema13 > indicators.ema.ema21 ? '[BULL]' : indicators.ema.ema5 < indicators.ema.ema13 && indicators.ema.ema13 < indicators.ema.ema21 ? '[BEAR]' : ''}
+- VWAP: $${indicators.vwap.value.toFixed(2)} ${indicators.vwap.position} ${Math.abs(indicators.vwap.priceVsVWAP).toFixed(2)}% | Bands: ${indicators.vwap.upperBand.toFixed(2)}-${indicators.vwap.lowerBand.toFixed(2)}
+- ATR(10): ${indicators.atr.value.toFixed(4)} ${indicators.atr.percent.toFixed(2)}% ${indicators.atr.level} ${indicators.atr.trend}
+- BB(12): U=${indicators.bollingerBands.upper.toFixed(2)} M=${indicators.bollingerBands.middle.toFixed(2)} L=${indicators.bollingerBands.lower.toFixed(2)} %B=${indicators.bollingerBands.percentB.toFixed(3)} BW=${(indicators.bollingerBands.bandwidth * 100).toFixed(2)}%
+- Vol Ratio: ${indicators.volumeProfile.currentVolumeRatio.toFixed(2)}x
+- OBV: ${indicators.obv.trend} ${indicators.obv.divergence ? '[DIV]' : ''}
+- Vol Delta: ${indicators.volumeDelta.current.toFixed(2)} Cum=${indicators.volumeDelta.cumulative.toFixed(2)} ${indicators.volumeDelta.trend}
 
 RECENT PRICE ACTION (Last 10 candles):
 ${this.formatRecentCandles(marketData.klines.slice(-10))}
 
-Based on this comprehensive data, predict whether the price will go UP or DOWN in the next 5 minutes.
+Predict UP or DOWN for next 5 minutes.
 
-CRITICAL FACTORS TO CONSIDER (in order of importance for 5-minute prediction):
-1. **Order Book Pressure** - Real-time buy/sell pressure and imbalance (MOST IMPORTANT for short-term)
-2. **Recent Trade Flow** - Aggressive buying/selling in last 100 trades (VERY IMPORTANT)
-3. **ATR & Volatility** - Current market volatility level
-4. **Stochastic Oscillator** - Short-term momentum (better than RSI for 5min)
-5. **VWAP Position** - Price relative to volume-weighted average
-6. **RSI levels** - Oversold/overbought conditions
-7. **MACD crossovers** - Momentum direction
-8. **EMA trends** - Short-term trend (EMA9 vs EMA21)
-9. **Bollinger Bands** - Volatility and price extremes
-10. **Volume patterns** - Confirmation of moves
+SCORING (0-100 each):
+1. OrderBook: weighted pressure + imbalance + whales (35%)
+2. TradeFlow: time-weighted ratio + acceleration + whales (35%)
+3. Momentum: Stoch + MFI + ATR + VolDelta (15%)
+4. Trend: EMA + MACD + VWAP (10%)
+5. Volume: OBV + VolDelta + divergences (5%)
+Total = weighted sum. Adjust confidence for alignment.
 
-IMPORTANT: For 5-minute predictions, prioritize ORDER BOOK and TRADE FLOW data over longer-term indicators!
-
-Provide your prediction in the required JSON format.`;
+PRIORITY: Order Book & Trade Flow > Indicators for 5min.`;
   }
 
   /**

@@ -72,19 +72,26 @@ async function testEnhancedIndicators() {
     const indicators = calculateIndicators(marketData.klines);
     
     console.log('   Traditional Indicators:');
-    console.log(`   - RSI: ${indicators.rsi.toFixed(2)}`);
+    console.log(`   - RSI (9): ${indicators.rsi.toFixed(2)}`);
     console.log(`   - MACD: ${indicators.macd.macd.toFixed(4)}`);
-    console.log(`   - EMA9: $${indicators.ema.ema9.toFixed(2)}`);
+    console.log(`   - EMA5: $${indicators.ema.ema5.toFixed(2)}`);
+    console.log(`   - EMA13: $${indicators.ema.ema13.toFixed(2)}`);
+    console.log(`   - EMA21: $${indicators.ema.ema21.toFixed(2)}`);
     console.log('');
     
-    console.log('   New Indicators:');
-    console.log(`   - ATR: ${indicators.atr.value.toFixed(4)} (${indicators.atr.percent.toFixed(2)}%)`);
-    console.log(`   - ATR Level: ${indicators.atr.level}`);
-    console.log(`   - Stochastic %K: ${indicators.stochastic.k.toFixed(1)}`);
-    console.log(`   - Stochastic %D: ${indicators.stochastic.d.toFixed(1)}`);
-    console.log(`   - Stochastic Signal: ${indicators.stochastic.signal}`);
-    console.log(`   - VWAP: $${indicators.vwap.value.toFixed(2)}`);
-    console.log(`   - Price vs VWAP: ${indicators.vwap.priceVsVWAP.toFixed(2)}% (${indicators.vwap.position})`);
+    console.log('   Enhanced Indicators (v2.0.0):');
+    console.log(`   - ATR (10): ${indicators.atr.value.toFixed(4)} (${indicators.atr.percent.toFixed(2)}%) - ${indicators.atr.level} volatility`);
+    console.log(`   - ATR Trend: ${indicators.atr.trend}`);
+    console.log(`   - Stochastic (9): %K=${indicators.stochastic.k.toFixed(1)} %D=${indicators.stochastic.d.toFixed(1)} - ${indicators.stochastic.signal}`);
+    console.log(`   - VWAP: $${indicators.vwap.value.toFixed(2)} (${indicators.vwap.position})`);
+    console.log(`   - VWAP Bands: Upper $${indicators.vwap.upperBand.toFixed(2)} | Lower $${indicators.vwap.lowerBand.toFixed(2)}`);
+    console.log(`   - Bollinger Bands (12): %B=${indicators.bollingerBands.percentB.toFixed(3)} | Bandwidth=${(indicators.bollingerBands.bandwidth * 100).toFixed(2)}%`);
+    console.log('');
+
+    console.log('   🆕 NEW Indicators (v2.0.0):');
+    console.log(`   - MFI (9): ${indicators.mfi.value.toFixed(2)} - ${indicators.mfi.signal} ${indicators.mfi.divergence ? '⚠️ DIVERGENCE' : ''}`);
+    console.log(`   - OBV: ${indicators.obv.value.toFixed(2)} - ${indicators.obv.trend} ${indicators.obv.divergence ? '⚠️ DIVERGENCE' : ''}`);
+    console.log(`   - Volume Delta: Current=${indicators.volumeDelta.current.toFixed(2)} | Cumulative=${indicators.volumeDelta.cumulative.toFixed(2)} | Trend=${indicators.volumeDelta.trend}`);
     console.log('');
 
     // Test 5: Combined Analysis

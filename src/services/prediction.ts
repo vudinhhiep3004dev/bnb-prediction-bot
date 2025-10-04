@@ -28,9 +28,12 @@ export class PredictionService {
         100
       );
 
-      // Step 2: Calculate technical indicators
+      // Step 2: Calculate technical indicators with recent trades for volume delta
       logger.info('Calculating technical indicators...');
-      const indicators = calculateIndicators(marketData.klines);
+      const recentTrades = marketData.recentTrades
+        ? await this.binanceService.getRecentTrades(symbol, 100)
+        : undefined;
+      const indicators = calculateIndicators(marketData.klines, recentTrades);
 
       // Step 3: Get AI prediction
       logger.info('Requesting AI analysis...');
@@ -81,19 +84,18 @@ export class PredictionService {
   }
 
   /**
-   * Determine overall trend from indicators
+   * Determine overall trend from indicators (updated for new EMAs)
    */
   private determineTrend(indicators: any): string {
     const { ema, macd } = indicators;
-    const currentPrice = ema.ema9;
 
     let bullishSignals = 0;
     let bearishSignals = 0;
 
-    // EMA trend
-    if (ema.ema9 > ema.ema21 && ema.ema21 > ema.ema50) {
+    // EMA trend (updated to use ema5, ema13, ema21)
+    if (ema.ema5 > ema.ema13 && ema.ema13 > ema.ema21) {
       bullishSignals++;
-    } else if (ema.ema9 < ema.ema21 && ema.ema21 < ema.ema50) {
+    } else if (ema.ema5 < ema.ema13 && ema.ema13 < ema.ema21) {
       bearishSignals++;
     }
 

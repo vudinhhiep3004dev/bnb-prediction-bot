@@ -1,0 +1,59 @@
+{
+  "totalPredictions": 1,
+  "correctPredictions": 1,
+  "incorrectPredictions": 0,
+  "accuracy": 100,
+  "winRate": 100,
+  "profitLoss": 96,
+  "sharpeRatio": 0,
+  "maxDrawdown": 0,
+  "avgConfidence": 65,
+  "accuracyByConfidence": {
+    "high": {
+      "total": 0,
+      "correct": 0,
+      "accuracy": 0
+    },
+    "medium": {
+      "total": 1,
+      "correct": 1,
+      "accuracy": 100
+    },
+    "low": {
+      "total": 0,
+      "correct": 0,
+      "accuracy": 0
+    }
+  },
+  "accuracyByMarketCondition": {
+    "trending": {
+      "total": 0,
+      "correct": 0,
+      "accuracy": 0
+    },
+    "ranging": {
+      "total": 1,
+      "correct": 1,
+      "accuracy": 100
+    },
+    "volatile": {
+      "total": 0,
+      "correct": 0,
+      "accuracy": 0
+    }
+  },
+  "predictions": [
+    {
+      "timestamp": "2025-10-04T03:44:59.999Z",
+      "prediction": "DOWN",
+      "confidence": 65,
+      "currentPrice": 1171.21,
+      "predictedPrice": 1171.15,
+      "actualPrice": 1169.18,
+      "actualChange": -0.17332502283962506,
+      "correct": true,
+      "profitLoss": 96,
+      "marketCondition": "RANGING"
+    }
+  ]
+}
